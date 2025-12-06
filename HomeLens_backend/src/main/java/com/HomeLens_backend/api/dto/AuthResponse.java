@@ -1,27 +1,15 @@
 package com.HomeLens_backend.api.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+
 import java.time.Instant;
 
+@Data
+@AllArgsConstructor
 public class AuthResponse {
 
     private String token;
     private Instant expiresAt;
-    private String tokenType = "Bearer";
-
-    public AuthResponse(String token, Instant expiresAt) {
-        this.token = token;
-        this.expiresAt = expiresAt;
-    }
-
-    public String getToken() {
-        return token;
-    }
-
-    public Instant getExpiresAt() {
-        return expiresAt;
-    }
-
-    public String getTokenType() {
-        return tokenType;
-    }
+//    private String tokenType = "Bearer";
 }
