@@ -5,6 +5,7 @@ import com.HomeLens_backend.api.dto.OtpRequest;
 import com.HomeLens_backend.api.dto.VerifyOtpRequest;
 import com.HomeLens_backend.api.service.JwtService;
 import com.HomeLens_backend.api.service.OtpService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -15,15 +16,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/auth")
+@RequiredArgsConstructor
 public class AuthController {
 
     private final OtpService otpService;
     private final JwtService jwtService;
 
-    public AuthController(OtpService otpService, JwtService jwtService) {
-        this.otpService = otpService;
-        this.jwtService = jwtService;
-    }
 
     @PostMapping("/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody OtpRequest request) {
