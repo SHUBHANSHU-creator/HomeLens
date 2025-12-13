@@ -76,6 +76,10 @@ public class AuthController {
         try{
             String mobileNumber = (String) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
             user.setMobileNumber(mobileNumber);
+            boolean isSignedIn = userDirectoryRepo.existsByMobileNumber(user.getMobileNumber());
+            if(isSignedIn){
+                return ResponseEntity.badRequest().body("User Already Signed In");
+            }
             userService.createUser(user);
         } catch (Exception e) {
             log.error("Error in Creating a User - {}",e.getMessage());
