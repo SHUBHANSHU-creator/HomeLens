@@ -10,6 +10,7 @@ import com.HomeLens_backend.api.service.JwtService;
 import com.HomeLens_backend.api.service.OtpService;
 import com.HomeLens_backend.api.service.RefreshTokenService;
 import com.HomeLens_backend.api.service.UserService;
+import com.HomeLens_backend.api.service.OtpRateLimitException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -38,7 +39,13 @@ public class AuthController {
         if (!isValidMobile(request.getMobileNumber())) {
             return ResponseEntity.badRequest().body("Invalid mobile number");
         }
-        otpService.sendOtp(request.getMobileNumber());
+        try {
+            otpService.sendOtp(request.getMobileNumber());
+        } catch (OtpRateLimitException ex) {
+            long minutes = ex.getRetryAfter().toMinutes();
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body("Too many OTP requests. Try again in " + minutes + " minutes");
+        }
         return ResponseEntity.ok().body("OTP sent successfully");
     }
 
