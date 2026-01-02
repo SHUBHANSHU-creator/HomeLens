@@ -1,21 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search as SearchIcon, SlidersHorizontal, MapPin } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { SocietyCard } from '@/components/cards/SocietyCard';
-import { mockSocieties } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
-
-const areas = ['All', 'Sector 15', 'DLF Phase 3', 'Golf Course Road', 'Sohna Road', 'Sector 56'];
+import { fetchSocieties } from '@/lib/api';
+import { Society } from '@/types';
 
 const Search = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedArea, setSelectedArea] = useState('All');
+  const [societies, setSocieties] = useState<Society[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredSocieties = mockSocieties.filter(society => {
+  useEffect(() => {
+    let isActive = true;
+    setIsLoading(true);
+    fetchSocieties()
+      .then((data) => {
+        if (!isActive) return;
+        setSocieties(data);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!isActive) return;
+        setError(err.message);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const areas = useMemo(() => {
+    const uniqueAreas = Array.from(new Set(societies.map((society) => society.area)));
+    return ['All', ...uniqueAreas];
+  }, [societies]);
+
+  useEffect(() => {
+    if (selectedArea !== 'All' && !areas.includes(selectedArea)) {
+      setSelectedArea('All');
+    }
+  }, [areas, selectedArea]);
+
+  const filteredSocieties = societies.filter(society => {
     const matchesSearch = 
       society.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       society.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -80,7 +116,11 @@ const Search = () => {
           </span>
         </div>
 
-        {filteredSocieties.length > 0 ? (
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading societies...</p>
+        ) : error ? (
+          <p className="text-sm text-destructive">Unable to load societies right now.</p>
+        ) : filteredSocieties.length > 0 ? (
           <div className="space-y-4">
             {filteredSocieties.map((society, index) => (
               <SocietyCard

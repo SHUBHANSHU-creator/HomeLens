@@ -1,19 +1,55 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, MapPin, Building2, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { FlatCard } from '@/components/cards/FlatCard';
-import { mockSocieties, mockFlats } from '@/data/mockData';
 import { Badge } from '@/components/ui/badge';
+import { fetchFlatsBySociety, fetchSociety } from '@/lib/api';
+import { Flat, Society } from '@/types';
 
 const SocietyDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const society = mockSocieties.find(s => s.id === id);
-  const flats = mockFlats.filter(f => f.societyId === id);
+  const [society, setSociety] = useState<Society | null>(null);
+  const [flats, setFlats] = useState<Flat[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!society) {
+  useEffect(() => {
+    if (!id) return;
+    let isActive = true;
+    setIsLoading(true);
+    Promise.all([fetchSociety(id), fetchFlatsBySociety(id)])
+      .then(([societyData, flatData]) => {
+        if (!isActive) return;
+        setSociety(societyData);
+        setFlats(flatData);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!isActive) return;
+        setError(err.message);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading society...</p>
+      </div>
+    );
+  }
+
+  if (error || !society) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Society not found</p>

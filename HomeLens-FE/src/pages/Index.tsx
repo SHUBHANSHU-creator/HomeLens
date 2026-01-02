@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, ChevronRight } from 'lucide-react';
 import { Header } from '@/components/layout/Header';
@@ -6,18 +6,45 @@ import { BottomNav } from '@/components/layout/BottomNav';
 import { SocietyCard } from '@/components/cards/SocietyCard';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { mockSocieties } from '@/data/mockData';
+import { fetchSocieties } from '@/lib/api';
+import { Society } from '@/types';
 
 const Index = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const [societies, setSocieties] = useState<Society[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const filteredSocieties = mockSocieties.filter(society =>
+  useEffect(() => {
+    let isActive = true;
+    setIsLoading(true);
+    fetchSocieties()
+      .then((data) => {
+        if (!isActive) return;
+        setSocieties(data);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!isActive) return;
+        setError(err.message);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const filteredSocieties = societies.filter(society =>
     society.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     society.area.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const topRated = [...mockSocieties].sort((a, b) => b.averageRating - a.averageRating).slice(0, 3);
+  const topRated = [...societies].sort((a, b) => b.averageRating - a.averageRating).slice(0, 3);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -68,17 +95,23 @@ const Index = () => {
               <ChevronRight className="w-4 h-4" />
             </Button>
           </div>
-          <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
-            {topRated.map((society, index) => (
-              <SocietyCard
-                key={society.id}
-                society={society}
-                onClick={() => navigate(`/society/${society.id}`)}
-                className="min-w-[280px] flex-shrink-0"
-                style={{ animationDelay: `${index * 100}ms` }}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading top-rated societies...</p>
+          ) : error ? (
+            <p className="text-sm text-destructive">Unable to load societies right now.</p>
+          ) : (
+            <div className="flex gap-4 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              {topRated.map((society, index) => (
+                <SocietyCard
+                  key={society.id}
+                  society={society}
+                  onClick={() => navigate(`/society/${society.id}`)}
+                  className="min-w-[280px] flex-shrink-0"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                />
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Near You Section */}
@@ -89,16 +122,22 @@ const Index = () => {
               {filteredSocieties.length} societies
             </span>
           </div>
-          <div className="space-y-4">
-            {filteredSocieties.map((society, index) => (
-              <SocietyCard
-                key={society.id}
-                society={society}
-                onClick={() => navigate(`/society/${society.id}`)}
-                style={{ animationDelay: `${index * 50}ms` }}
-              />
-            ))}
-          </div>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading nearby societies...</p>
+          ) : error ? (
+            <p className="text-sm text-destructive">Unable to load societies right now.</p>
+          ) : (
+            <div className="space-y-4">
+              {filteredSocieties.map((society, index) => (
+                <SocietyCard
+                  key={society.id}
+                  society={society}
+                  onClick={() => navigate(`/society/${society.id}`)}
+                  style={{ animationDelay: `${index * 50}ms` }}
+                />
+              ))}
+            </div>
+          )}
         </section>
       </main>
 

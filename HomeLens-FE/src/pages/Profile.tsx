@@ -1,14 +1,19 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { User, FileText, Star, Settings, LogOut, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { useAuth } from '@/contexts/AuthContext';
-import { mockReviews } from '@/data/mockData';
 import { ReviewCard } from '@/components/cards/ReviewCard';
+import { fetchReviewsByUser } from '@/lib/api';
+import { Review } from '@/types';
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, logout } = useAuth();
+  const [userReviews, setUserReviews] = useState<Review[]>([]);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
 
   if (!isAuthenticated) {
     return (
@@ -37,7 +42,32 @@ const Profile = () => {
     );
   }
 
-  const userReviews = mockReviews.filter(r => r.userId === user?.id);
+  useEffect(() => {
+    if (!user?.id) {
+      setUserReviews([]);
+      return;
+    }
+    let isActive = true;
+    setIsLoadingReviews(true);
+    fetchReviewsByUser(user.id)
+      .then((data) => {
+        if (!isActive) return;
+        setUserReviews(data);
+        setReviewsError(null);
+      })
+      .catch((err: Error) => {
+        if (!isActive) return;
+        setReviewsError(err.message);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoadingReviews(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [user?.id]);
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -112,7 +142,11 @@ const Profile = () => {
         <section>
           <h2 className="font-serif text-lg font-semibold mb-4">My Reviews</h2>
           
-          {userReviews.length > 0 ? (
+          {isLoadingReviews ? (
+            <p className="text-sm text-muted-foreground">Loading your reviews...</p>
+          ) : reviewsError ? (
+            <p className="text-sm text-destructive">Unable to load your reviews.</p>
+          ) : userReviews.length > 0 ? (
             <div className="space-y-4">
               {userReviews.map((review) => (
                 <ReviewCard key={review.id} review={review} />

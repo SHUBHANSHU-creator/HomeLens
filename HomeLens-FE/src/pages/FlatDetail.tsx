@@ -1,19 +1,62 @@
+import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Star, Bed, Bath, Square, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BottomNav } from '@/components/layout/BottomNav';
 import { ReviewCard } from '@/components/cards/ReviewCard';
-import { mockFlats, mockSocieties, mockReviews } from '@/data/mockData';
+import { fetchFlat, fetchReviewsByFlat, fetchSociety } from '@/lib/api';
+import { Flat, Review, Society } from '@/types';
 
 const FlatDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  
-  const flat = mockFlats.find(f => f.id === id);
-  const society = flat ? mockSocieties.find(s => s.id === flat.societyId) : null;
-  const reviews = mockReviews.filter(r => r.flatId === id);
+  const [flat, setFlat] = useState<Flat | null>(null);
+  const [society, setSociety] = useState<Society | null>(null);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!flat || !society) {
+  useEffect(() => {
+    if (!id) return;
+    let isActive = true;
+    setIsLoading(true);
+
+    fetchFlat(id)
+      .then((flatData) => {
+        if (!isActive) return;
+        setFlat(flatData);
+        return Promise.all([fetchSociety(flatData.societyId), fetchReviewsByFlat(flatData.id)]);
+      })
+      .then((result) => {
+        if (!result || !isActive) return;
+        const [societyData, reviewData] = result;
+        setSociety(societyData);
+        setReviews(reviewData);
+        setError(null);
+      })
+      .catch((err: Error) => {
+        if (!isActive) return;
+        setError(err.message);
+      })
+      .finally(() => {
+        if (!isActive) return;
+        setIsLoading(false);
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [id]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p>Loading flat...</p>
+      </div>
+    );
+  }
+
+  if (error || !flat || !society) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p>Flat not found</p>
