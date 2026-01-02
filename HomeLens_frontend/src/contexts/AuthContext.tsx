@@ -23,7 +23,8 @@ interface AuthTokens {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
+const DEFAULT_API_BASE_URL = 'http://localhost:8080/homelens';
+const API_BASE_URL = (import.meta.env.VITE_API_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, '');
 const AUTH_STORAGE_KEY = 'homelens.auth';
 const USER_STORAGE_KEY = 'homelens.user';
 const DEVICE_STORAGE_KEY = 'homelens.deviceId';
@@ -97,7 +98,7 @@ const parseResponse = async (response: Response) => {
 };
 
 const request = async <T,>(endpoint: string, options: RequestInit = {}): Promise<T> => {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`, {
     headers: {
       'Content-Type': 'application/json',
       ...options.headers,
